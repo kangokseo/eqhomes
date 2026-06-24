@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EQ Homes Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f4f6f9; --panel:#ffffff; --panel2:#f6f8fb; --line:#e3e8ef;
+  --txt:#0a0b0d; --mut:#64748b; --accent:#1652f0; --green:#05b169; --red:#cf202f;
+  --amber:#d97706; --teal:#0d9488; --purple:#9333ea;
+  --shadow:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',-apple-system,'Malgun Gothic',sans-serif;background:var(--bg);color:var(--txt);line-height:1.5;padding:24px}
+.wrap{max-width:1280px;margin:0 auto}
+header{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:24px;text-align:center}
+h1{font-size:40px;font-weight:800;letter-spacing:-.01em}
+.addr{color:var(--mut);font-size:15px;margin-top:6px}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{background:var(--accent);color:#fff;border:none;padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
+.btn.ghost{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
+.btn:hover{opacity:.9}
+.status{font-size:12px;color:var(--mut)}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:10px 16px;font-size:12px;color:var(--mut);cursor:pointer;transition:.2s}
+.drop.hi{border-color:var(--accent);background:rgba(59,130,246,.08)}
+section{margin-bottom:26px}
+.sec-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin-bottom:12px;border-left:3px solid var(--accent);padding-left:10px}
+.lease-toggle{cursor:pointer;user-select:none}
+.lease-toggle .arrow{display:inline-block;font-size:10px;margin-right:4px}
+.tbl-card.collapsed tr.lease-detail{display:none}
+.grid{display:grid;gap:14px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow)}
+.card .lbl{font-size:12px;color:var(--mut);margin-bottom:6px}
+.card .val{font-size:26px;font-weight:700}
+.card .sub{font-size:12px;color:var(--mut);margin-top:4px}
+.pos{color:var(--green)} .neg{color:var(--red)}
+.info-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.info{background:var(--panel2);border-radius:8px;padding:10px 12px;text-align:center}
+.info .k{font-size:11px;color:var(--mut)} .info .v{font-size:15px;font-weight:600;margin-top:2px}
+.two{grid-template-columns:2fr 1fr}
+.three{grid-template-columns:1fr 1fr 1fr}
+@media(max-width:880px){.two,.three{grid-template-columns:1fr}}
+.chart-box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;position:relative;box-shadow:var(--shadow)}
+.chart-box h3{font-size:14px;margin-bottom:12px;font-weight:600}
+.filters{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.filters label{display:flex;flex-direction:column;font-size:11px;color:var(--mut);gap:4px}
+select{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-size:13px;min-width:120px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em}
+tr.sub-row{background:var(--panel2);font-weight:600}
+tr.total-row{background:rgba(59,130,246,.12);font-weight:700}
+.badge{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600}
+.badge.fin{background:rgba(34,197,94,.15);color:var(--green)}
+.badge.ren{background:rgba(245,158,11,.15);color:var(--amber)}
+.tbl-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;overflow-x:auto;box-shadow:var(--shadow)}
+canvas{max-width:100%}
+a{color:var(--accent);text-decoration:none}
+.foot{color:var(--mut);font-size:11px;text-align:center;margin-top:30px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1><span id="hTitle"></span></h1>
+    <div class="addr" id="hAddr"></div>
+  </div>
+</header>
+
+<section>
+  <div class="grid info-grid" id="propInfo"></div>
+</section>
+
+<section>
+  <div class="sec-title">Lifetime to Date (핵심 지표)</div>
+  <div class="grid kpis" id="kpis"></div>
+</section>
+
+<section>
+  <div class="sec-title">Net Cash Flow Monthly Trend (월별 순현금흐름 추이)</div>
+  <div class="chart-box"><canvas id="trendChart" height="90"></canvas></div>
+</section>
+
+<section>
+  <div class="sec-title">Net Cash Flow Monthly Detail (월별 상세)</div>
+  <div class="filters">
+    <label>From<select id="fFrom"></select></label>
+    <label>To<select id="fTo"></select></label>
+    <label>Unit<select id="fUnit"></select></label>
+    <button class="btn ghost" id="fReset">초기화</button>
+  </div>
+  <div class="grid three" id="detailKpis" style="margin-bottom:14px"></div>
+  <div class="chart-box"><h3>월별 항목 분해 (Stacked)</h3><canvas id="stackChart" height="110"></canvas></div>
+</section>
+
+<section class="grid three">
+  <div class="tbl-card">
+    <div class="sec-title" style="border:0;padding:0;margin-bottom:10px">Expenses by Category · Selected Period (지출 카테고리별·선택 기간)</div>
+    <canvas id="expPie" height="160"></canvas>
+    <table id="expTable" style="margin-top:12px"></table>
+  </div>
+  <div class="tbl-card">
+    <div class="sec-title" style="border:0;padding:0;margin-bottom:10px">Income by Unit · Selected Period (Unit별 수입. 선택 기간)</div>
+    <canvas id="unitPie" height="160"></canvas>
+    <table id="unitTable" style="margin-top:12px"></table>
+  </div>
+  <div class="tbl-card">
+    <div class="sec-title" style="border:0;padding:0;margin-bottom:10px">Operating Summary · NOI / Cap Rate (운영 요약)</div>
+    <table id="noiTable"></table>
+  </div>
+</section>
+
+<section>
+  <div class="sec-title lease-toggle" data-target="upCard"><span class="arrow">▶</span> Leases 2026-27</div>
+  <div class="tbl-card collapsed" id="upCard"><table id="upTable"></table></div>
+</section>
+
+<section>
+  <div class="sec-title lease-toggle" data-target="curCard"><span class="arrow">▶</span> Leases 2025-26</div>
+  <div class="tbl-card collapsed" id="curCard"><table id="curTable"></table></div>
+</section>
+
+<div class="foot" id="foot"></div>
+</div>
+
+<script>
+const DATA = {"config": {"title": "EQ Homes", "address": "", "subtitle": "", "acqDate": "2025-11-12", "acqPrice": 2999000, "sqft": 4089, "rate": "5.25% / 5.951% (APR)", "vacancy": 0, "units": 3, "bedrooms": 9, "documents": 7, "value": 2999000, "debt": 1499000, "stabilizedRent": 13306, "resources": []}, "transactions": [{"month": "FY25-Dec", "date": "2025-12-05", "type": "Expense", "category": "Supplies & Repairs", "amount": -50.99, "vendor": "", "unit": "Unit 2", "desc": "Console"}, {"month": "FY25-Dec", "date": "2025-12-05", "type": "Expense", "category": "Supplies & Repairs", "amount": -106.24, "vendor": "", "unit": "Unit 1", "desc": "Desk"}, {"month": "FY25-Dec", "date": "2025-12-05", "type": "Expense", "category": "Supplies & Repairs", "amount": -14.86, "vendor": "", "unit": "General", "desc": "Rod"}, {"month": "FY25-Dec", "date": "2025-12-05", "type": "Expense", "category": "Supplies & Repairs", "amount": -13.25, "vendor": "", "unit": "Unit 2", "desc": "Curtain"}, {"month": "FY25-Dec", "date": "2025-12-05", "type": "Expense", "category": "Supplies & Repairs", "amount": -17.94, "vendor": "", "unit": "Unit 2", "desc": "Curtain"}, {"month": "FY25-Dec", "date": "2025-12-05", "type": "Expense", "category": "Supplies & Repairs", "amount": -21.24, "vendor": "", "unit": "General", "desc": "Curtain rod"}, {"month": "FY25-Dec", "date": "2025-12-05", "type": "Expense", "category": "Supplies & Repairs", "amount": -14.86, "vendor": "", "unit": "General", "desc": "Curtain rod"}, {"month": "FY25-Dec", "date": "2025-12-06", "type": "Expense", "category": "Supplies & Repairs", "amount": -47.43, "vendor": "", "unit": "Basement", "desc": "Desk chair"}, {"month": "FY25-Dec", "date": "2025-12-06", "type": "Expense", "category": "Supplies & Repairs", "amount": -116.86, "vendor": "", "unit": "Unit 3", "desc": "Desk"}, {"month": "FY25-Dec", "date": "2025-12-06", "type": "Expense", "category": "Supplies & Repairs", "amount": -105.11, "vendor": "", "unit": "Unit 3", "desc": "Bed frame"}, {"month": "FY25-Dec", "date": "2025-12-06", "type": "Expense", "category": "Supplies & Repairs", "amount": -84.97, "vendor": "", "unit": "Unit 2", "desc": "Microwave"}, {"month": "FY25-Dec", "date": "2025-12-07", "type": "Expense", "category": "Supplies & Repairs", "amount": -25.31, "vendor": "", "unit": "Unit 2", "desc": "Detergent"}, {"month": "FY25-Dec", "date": "2025-12-07", "type": "Expense", "category": "Supplies & Repairs", "amount": -42.49, "vendor": "", "unit": "Basement", "desc": "Wall Mirror"}, {"month": "FY25-Dec", "date": "2025-12-08", "type": "Expense", "category": "Supplies & Repairs", "amount": -31.86, "vendor": "", "unit": "Unit 2", "desc": "Side table"}, {"month": "FY25-Dec", "date": "2025-12-08", "type": "Expense", "category": "Supplies & Repairs", "amount": -53.05, "vendor": "", "unit": "Basement", "desc": "Comfy Chair"}, {"month": "FY25-Dec", "date": "2025-12-08", "type": "Expense", "category": "Supplies & Repairs", "amount": -10.61, "vendor": "", "unit": "General", "desc": "Wall hook"}, {"month": "FY25-Dec", "date": "2025-12-09", "type": "Expense", "category": "Supplies & Repairs", "amount": -6.9, "vendor": "", "unit": "General", "desc": "house number"}, {"month": "FY25-Dec", "date": "2025-12-09", "type": "Expense", "category": "Supplies & Repairs", "amount": -4.22, "vendor": "", "unit": "General", "desc": "house letter"}, {"month": "FY25-Dec", "date": "2025-12-09", "type": "Expense", "category": "Supplies & Repairs", "amount": -14.86, "vendor": "", "unit": "Unit 2", "desc": "shower curtain"}, {"month": "FY25-Dec", "date": "2025-12-09", "type": "Expense", "category": "Supplies & Repairs", "amount": -16.99, "vendor": "", "unit": "General", "desc": "Screwdriver"}, {"month": "FY25-Dec", "date": "2025-12-09", "type": "Expense", "category": "Supplies & Repairs", "amount": -8.48, "vendor": "", "unit": "General", "desc": "Door seal strip"}, {"month": "FY25-Dec", "date": "2025-12-09", "type": "Expense", "category": "Supplies & Repairs", "amount": -20.97, "vendor": "", "unit": "Unit 1", "desc": "Shower curtain"}, {"month": "FY25-Dec", "date": "2025-12-10", "type": "Income", "category": "Rent", "amount": 768, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY25-Dec", "date": "2025-12-10", "type": "Income", "category": "Security deposit", "amount": 1400, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY25-Dec", "date": "2025-12-10", "type": "Expense", "category": "Supplies & Repairs", "amount": -192.02, "vendor": "", "unit": "Basement", "desc": "Sofa bed"}, {"month": "FY25-Dec", "date": "2025-12-11", "type": "Expense", "category": "Supplies & Repairs", "amount": -8.06, "vendor": "", "unit": "General", "desc": "House number"}, {"month": "FY25-Dec", "date": "2025-12-11", "type": "Expense", "category": "Supplies & Repairs", "amount": -4.45, "vendor": "", "unit": "General", "desc": "trash sign"}, {"month": "FY25-Dec", "date": "2025-12-11", "type": "Expense", "category": "Supplies & Repairs", "amount": -7.43, "vendor": "", "unit": "General", "desc": "sheer valance"}, {"month": "FY25-Dec", "date": "2025-12-13", "type": "Expense", "category": "Supplies & Repairs", "amount": -12.74, "vendor": "", "unit": "Unit 2", "desc": "Door seal"}, {"month": "FY25-Dec", "date": "2025-12-13", "type": "Expense", "category": "Supplies & Repairs", "amount": -8.49, "vendor": "", "unit": "General", "desc": "Trash sign"}, {"month": "FY25-Dec", "date": "2025-12-15", "type": "Income", "category": "Rent", "amount": 500, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY25-Dec", "date": "2025-12-15", "type": "Income", "category": "Security deposit", "amount": 1500, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY25-Dec", "date": "2025-12-15", "type": "Expense", "category": "Supplies & Repairs", "amount": -15.94, "vendor": "", "unit": "General", "desc": "Sealant"}, {"month": "FY25-Dec", "date": "2025-12-15", "type": "Expense", "category": "Supplies & Repairs", "amount": -14.86, "vendor": "", "unit": "General", "desc": "Backer rod"}, {"month": "FY25-Dec", "date": "2025-12-15", "type": "Expense", "category": "Supplies & Repairs", "amount": -108.33, "vendor": "", "unit": "General", "desc": "AC defender"}, {"month": "FY25-Dec", "date": "2025-12-15", "type": "Expense", "category": "Supplies & Repairs", "amount": -27.61, "vendor": "", "unit": "General", "desc": "Vent cover"}, {"month": "FY25-Dec", "date": "2025-12-15", "type": "Expense", "category": "Supplies & Repairs", "amount": -26.76, "vendor": "", "unit": "General", "desc": "Stair tread"}, {"month": "FY25-Dec", "date": "2025-12-16", "type": "Expense", "category": "Supplies & Repairs", "amount": -637.94, "vendor": "", "unit": "General", "desc": "Frontdoor replacement"}, {"month": "FY25-Dec", "date": "2025-12-16", "type": "Expense", "category": "Supplies & Repairs", "amount": -8.49, "vendor": "", "unit": "Unit 2", "desc": "Light bulb"}, {"month": "FY25-Dec", "date": "2025-12-16", "type": "Expense", "category": "Supplies & Repairs", "amount": -46.93, "vendor": "", "unit": "Unit 2", "desc": "Air filter"}, {"month": "FY25-Dec", "date": "2025-12-17", "type": "Expense", "category": "Supplies & Repairs", "amount": -21.2, "vendor": "", "unit": "General", "desc": "Vent cover"}, {"month": "FY25-Dec", "date": "2025-12-17", "type": "Expense", "category": "Supplies & Repairs", "amount": -6.99, "vendor": "", "unit": "General", "desc": "Cotton gloves"}, {"month": "FY25-Dec", "date": "2025-12-18", "type": "Expense", "category": "Supplies & Repairs", "amount": -7.75, "vendor": "", "unit": "General", "desc": "Duct tape"}, {"month": "FY25-Dec", "date": "2025-12-18", "type": "Expense", "category": "Supplies & Repairs", "amount": -127.49, "vendor": "", "unit": "Basement", "desc": "Cabinet"}, {"month": "FY25-Dec", "date": "2025-12-19", "type": "Expense", "category": "Supplies & Repairs", "amount": -27.61, "vendor": "", "unit": "Unit 2", "desc": "Soundproof wall panel"}, {"month": "FY25-Dec", "date": "2025-12-19", "type": "Expense", "category": "Supplies & Repairs", "amount": -16.99, "vendor": "", "unit": "Unit 2", "desc": "Soundproof Stripping"}, {"month": "FY25-Dec", "date": "2025-12-22", "type": "Income", "category": "Rent", "amount": 4200, "vendor": "", "unit": "Unit 2", "desc": null}, {"month": "FY25-Dec", "date": "2025-12-22", "type": "Income", "category": "Security deposit", "amount": 4200, "vendor": "", "unit": "Unit 2", "desc": null}, {"month": "FY25-Dec", "date": "2025-12-22", "type": "Expense", "category": "Supplies & Repairs", "amount": -38.24, "vendor": "", "unit": "Unit 2", "desc": "Side table"}, {"month": "FY25-Dec", "date": "2025-12-25", "type": "Expense", "category": "Supplies & Repairs", "amount": -16.89, "vendor": "", "unit": "General", "desc": "Square towel hooks"}, {"month": "FY25-Nov", "date": "2025-11-09", "type": "Expense", "category": "Supplies & Repairs", "amount": -112.61, "vendor": "", "unit": "Unit 2", "desc": "Mattress"}, {"month": "FY25-Nov", "date": "2025-11-12", "type": "Expense", "category": "Supplies & Repairs", "amount": -10.61, "vendor": "", "unit": "General", "desc": "Storage sign"}, {"month": "FY25-Nov", "date": "2025-11-12", "type": "Expense", "category": "Supplies & Repairs", "amount": -12.74, "vendor": "", "unit": "General", "desc": "Mailbox number"}, {"month": "FY25-Nov", "date": "2025-11-12", "type": "Expense", "category": "Supplies & Repairs", "amount": -84.92, "vendor": "", "unit": "Unit 2", "desc": "Bed frame"}, {"month": "FY25-Nov", "date": "2025-11-17", "type": "Expense", "category": "Supplies & Repairs", "amount": -14.86, "vendor": "", "unit": "General", "desc": "Mailbox number"}, {"month": "FY25-Nov", "date": "2025-11-28", "type": "Expense", "category": "Supplies & Repairs", "amount": -24.64, "vendor": "", "unit": "Unit 2", "desc": "Drying Rack"}, {"month": "FY25-Nov", "date": "2025-11-28", "type": "Expense", "category": "Supplies & Repairs", "amount": -84.97, "vendor": "", "unit": "Basement", "desc": "Microwave"}, {"month": "FY26-Apr", "date": "2026-03-31", "type": "Income", "category": "Rent", "amount": 1646, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-Apr", "date": "2026-03-31", "type": "Income", "category": "Rent", "amount": 1400, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY26-Apr", "date": "2026-03-31", "type": "Income", "category": "Rent", "amount": 1500, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY26-Apr", "date": "2026-03-31", "type": "Income", "category": "Rent", "amount": 4200, "vendor": "", "unit": "Unit 2", "desc": null}, {"month": "FY26-Apr", "date": "2026-04-01", "type": "Income", "category": "Rent", "amount": 1099, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-Apr", "date": "2026-04-01", "type": "Income", "category": "Rent", "amount": 1665, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY26-Apr", "date": "2026-04-01", "type": "Income", "category": "Rent", "amount": 1255, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-Apr", "date": "2026-04-01", "type": "Expense", "category": "Principal", "amount": -1742.07, "vendor": "", "unit": "General", "desc": null}, {"month": "FY26-Apr", "date": "2026-04-01", "type": "Expense", "category": "Interest", "amount": -6535.46, "vendor": "", "unit": "General", "desc": null}, {"month": "FY26-Apr", "date": "2026-04-01", "type": "Expense", "category": "Taxes", "amount": -1000, "vendor": "", "unit": "General", "desc": null}, {"month": "FY26-Apr", "date": "2026-04-01", "type": "Expense", "category": "Insurance", "amount": -1091.24, "vendor": "", "unit": "General", "desc": null}, {"month": "FY26-Apr", "date": "2026-04-21", "type": "Expense", "category": "Supplies & Repairs", "amount": -99, "vendor": "", "unit": "Unit 3", "desc": "Dishwasher leak"}, {"month": "FY26-Apr", "date": "26/3/30", "type": "Expense", "category": "Management fees", "amount": -450, "vendor": "", "unit": "General", "desc": null}, {"month": "FY26-Feb", "date": "2026-01-31", "type": "Income", "category": "Rent", "amount": 1665, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY26-Feb", "date": "2026-01-31", "type": "Income", "category": "Rent", "amount": 1400, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY26-Feb", "date": "2026-01-31", "type": "Income", "category": "Rent", "amount": 1500, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY26-Feb", "date": "2026-02-01", "type": "Income", "category": "Rent", "amount": 4200, "vendor": "", "unit": "Unit 2", "desc": null}, {"month": "FY26-Feb", "date": "2026-02-01", "type": "Income", "category": "Rent", "amount": 1255, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-Feb", "date": "2026-02-01", "type": "Expense", "category": "Interest", "amount": -6558.13, "vendor": "", "unit": "General", "desc": "February"}, {"month": "FY26-Feb", "date": "2026-02-01", "type": "Expense", "category": "Principal", "amount": -1719.4, "vendor": "", "unit": "General", "desc": "February"}, {"month": "FY26-Feb", "date": "2026-02-01", "type": "Expense", "category": "Taxes", "amount": -1000, "vendor": "", "unit": "General", "desc": "February"}, {"month": "FY26-Feb", "date": "2026-02-01", "type": "Expense", "category": "Insurance", "amount": -1091.24, "vendor": "", "unit": "General", "desc": "February"}, {"month": "FY26-Feb", "date": "2026-02-02", "type": "Income", "category": "Rent", "amount": 1646, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-Feb", "date": "2026-02-02", "type": "Income", "category": "Rent", "amount": 1099, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-Feb", "date": "2026-02-04", "type": "Expense", "category": "Management fees", "amount": -450, "vendor": "", "unit": "General", "desc": null}, {"month": "FY26-Feb", "date": "2026-02-14", "type": "Expense", "category": "Supplies & Repairs", "amount": -360, "vendor": "", "unit": "Basement", "desc": "Electrician"}, {"month": "FY26-Feb", "date": "2026-02-14", "type": "Expense", "category": "Supplies & Repairs", "amount": -52.86, "vendor": "", "unit": "Basement", "desc": "Air matress"}, {"month": "FY26-Jan", "date": "2025-12-08", "type": "Income", "category": "Rent", "amount": 1255, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-Jan", "date": "2025-12-08", "type": "Income", "category": "Security deposit", "amount": 1255, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-Jan", "date": "2025-12-10", "type": "Income", "category": "Rent", "amount": 1665, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY26-Jan", "date": "2025-12-10", "type": "Income", "category": "Security deposit", "amount": 500, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-Jan", "date": "2025-12-10", "type": "Income", "category": "Security deposit", "amount": 1665, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY26-Jan", "date": "2025-12-12", "type": "Income", "category": "Rent", "amount": 1646, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-Jan", "date": "2025-12-12", "type": "Income", "category": "Security deposit", "amount": 1646, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-Jan", "date": "2025-12-25", "type": "Income", "category": "Rent", "amount": 1099, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-Jan", "date": "2025-12-25", "type": "Income", "category": "Security deposit", "amount": 599, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-Jan", "date": "2025-12-31", "type": "Expense", "category": "Commissions", "amount": -2000, "vendor": "", "unit": "Unit 1", "desc": "Unit1"}, {"month": "FY26-Jan", "date": "2025-12-31", "type": "Expense", "category": "Commissions", "amount": -2800, "vendor": "", "unit": "Unit 2", "desc": "Unit2"}, {"month": "FY26-Jan", "date": "2025-12-31", "type": "Expense", "category": "Commissions", "amount": -3043, "vendor": "", "unit": "Unit 3", "desc": "Unit3"}, {"month": "FY26-Jan", "date": "2026-01-01", "type": "Income", "category": "Rent", "amount": 1500, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY26-Jan", "date": "2026-01-01", "type": "Income", "category": "Rent", "amount": 1400, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY26-Jan", "date": "2026-01-01", "type": "Expense", "category": "Interest", "amount": -6558.13, "vendor": "", "unit": "General", "desc": "January"}, {"month": "FY26-Jan", "date": "2026-01-01", "type": "Expense", "category": "Principal", "amount": -1719.4, "vendor": "", "unit": "General", "desc": "January"}, {"month": "FY26-Jan", "date": "2026-01-01", "type": "Expense", "category": "Taxes", "amount": -1000, "vendor": "", "unit": "General", "desc": "January"}, {"month": "FY26-Jan", "date": "2026-01-01", "type": "Expense", "category": "Insurance", "amount": -1091.24, "vendor": "", "unit": "General", "desc": "January"}, {"month": "FY26-Jan", "date": "2026-01-01", "type": "Income", "category": "Rent", "amount": 4200, "vendor": "", "unit": "Unit 2", "desc": null}, {"month": "FY26-Jan", "date": "2026-01-02", "type": "Expense", "category": "Management fees", "amount": -450, "vendor": "", "unit": "General", "desc": null}, {"month": "FY26-Jan", "date": "2026-01-13", "type": "Expense", "category": "Supplies & Repairs", "amount": -24.6, "vendor": "", "unit": "Basement", "desc": "Induction"}, {"month": "FY26-Jan", "date": "2026-01-17", "type": "Expense", "category": "Supplies & Repairs", "amount": 36.09, "vendor": "", "unit": "General", "desc": "Tape, silicone gun"}, {"month": "FY26-Jan", "date": "2026-01-19", "type": "Expense", "category": "Supplies & Repairs", "amount": -95.98, "vendor": "", "unit": "General", "desc": "Fridgraire filter"}, {"month": "FY26-Jan", "date": "2026-01-19", "type": "Expense", "category": "Supplies & Repairs", "amount": -46.74, "vendor": "", "unit": "Basement", "desc": "Humidifier"}, {"month": "FY26-Jul", "date": "2026-04-14", "type": "Income", "category": "Security deposit", "amount": 1199, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-Jun", "date": "2026-05-29", "type": "Income", "category": "Rent", "amount": 1300, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-Jun", "date": "2026-05-31", "type": "Income", "category": "Rent", "amount": 1665, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY26-Jun", "date": "2026-05-31", "type": "Income", "category": "Rent", "amount": 1400, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY26-Jun", "date": "2026-05-31", "type": "Income", "category": "Rent", "amount": 1500, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY26-Jun", "date": "2026-05-31", "type": "Income", "category": "Rent", "amount": 4224, "vendor": "", "unit": "Unit 2", "desc": null}, {"month": "FY26-Jun", "date": "2026-06-01", "type": "Income", "category": "Rent", "amount": 1646, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-Jun", "date": "2026-06-01", "type": "Expense", "category": "Principal", "amount": -1742.07, "vendor": "", "unit": "General", "desc": null}, {"month": "FY26-Jun", "date": "2026-06-01", "type": "Expense", "category": "Interest", "amount": -6535.46, "vendor": "", "unit": "General", "desc": null}, {"month": "FY26-Jun", "date": "2026-06-01", "type": "Expense", "category": "Taxes", "amount": -1000, "vendor": "", "unit": "General", "desc": null}, {"month": "FY26-Jun", "date": "2026-06-01", "type": "Expense", "category": "Insurance", "amount": -1091.24, "vendor": "", "unit": "General", "desc": null}, {"month": "FY26-Jun", "date": "2026-06-04", "type": "Income", "category": "Rent", "amount": 1099, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-Mar", "date": "2026-03-01", "type": "Income", "category": "Rent", "amount": 1255, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-Mar", "date": "2026-03-01", "type": "Income", "category": "Rent", "amount": 1646, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-Mar", "date": "2026-03-01", "type": "Income", "category": "Rent", "amount": 1099, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-Mar", "date": "2026-03-01", "type": "Income", "category": "Rent", "amount": 4200, "vendor": "", "unit": "Unit 2", "desc": null}, {"month": "FY26-Mar", "date": "2026-03-01", "type": "Expense", "category": "Principal", "amount": -1742.07, "vendor": "", "unit": "General", "desc": null}, {"month": "FY26-Mar", "date": "2026-03-01", "type": "Expense", "category": "Interest", "amount": -6535.46, "vendor": "", "unit": "General", "desc": null}, {"month": "FY26-Mar", "date": "2026-03-01", "type": "Expense", "category": "Taxes", "amount": -1000, "vendor": "", "unit": "General", "desc": null}, {"month": "FY26-Mar", "date": "2026-03-01", "type": "Expense", "category": "Insurance", "amount": -1091.24, "vendor": "", "unit": "General", "desc": null}, {"month": "FY26-Mar", "date": "2026-03-01", "type": "Income", "category": "Rent", "amount": 1665, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY26-Mar", "date": "2026-03-01", "type": "Income", "category": "Rent", "amount": 1400, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY26-Mar", "date": "2026-03-01", "type": "Income", "category": "Rent", "amount": 1500, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY26-Mar", "date": "26/3/30", "type": "Expense", "category": "Management fees", "amount": -450, "vendor": "", "unit": "General", "desc": null}, {"month": "FY26-May", "date": "2026-04-25", "type": "Income", "category": "Security deposit", "amount": 1299, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-May", "date": "2026-04-26", "type": "Income", "category": "Rent", "amount": 1299, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-May", "date": "2026-04-30", "type": "Income", "category": "Rent", "amount": 1665, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY26-May", "date": "2026-04-30", "type": "Income", "category": "Rent", "amount": 1400, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY26-May", "date": "2026-04-30", "type": "Income", "category": "Rent", "amount": 1500, "vendor": "", "unit": "Unit 3", "desc": null}, {"month": "FY26-May", "date": "2026-04-30", "type": "Income", "category": "Rent", "amount": 4200, "vendor": "", "unit": "Unit 2", "desc": null}, {"month": "FY26-May", "date": "2026-05-01", "type": "Expense", "category": "Principal", "amount": -1742.07, "vendor": "", "unit": "General", "desc": null}, {"month": "FY26-May", "date": "2026-05-01", "type": "Expense", "category": "Interest", "amount": -6535.46, "vendor": "", "unit": "General", "desc": null}, {"month": "FY26-May", "date": "2026-05-01", "type": "Expense", "category": "Taxes", "amount": -1000, "vendor": "", "unit": "General", "desc": null}, {"month": "FY26-May", "date": "2026-05-01", "type": "Expense", "category": "Insurance", "amount": -1091.24, "vendor": "", "unit": "General", "desc": null}, {"month": "FY26-May", "date": "2026-05-01", "type": "Income", "category": "Rent", "amount": 1646, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-May", "date": "2026-05-03", "type": "Income", "category": "Rent", "amount": 1099, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-May", "date": "2026-05-31", "type": "Expense", "category": "Security deposit", "amount": -1235, "vendor": "", "unit": "Unit 1", "desc": null}, {"month": "FY26-Jul", "date": "6-22-2026", "type": "Income", "category": "Security deposit", "amount": 1600, "vendor": "", "unit": "Unit 2", "desc": null}], "upcoming": [{"unit": "Unit 1", "rows": [["Master", "A***** *****", "", 1699, "2026-07-01", "2027-06-30", "Finalized", 53, 0.0322], ["Small", "H***** *******", "", 1199, "2026-07-01", "2027-06-30", "Finalized", 100, 0.091], ["Big", "A**** ********", "", 1299, "2026-05-01", "2027-06-30", "Finalized", 44, 0.0351]], "sub": 4197, "chg": 197, "pct": 0.04925}, {"unit": "Unit 2", "rows": [["Master", "S****** ****", "", 1800, "2026-09-01", "2027-06-30", "Renewal", 0, 0.0], ["Small", "C***** ****", "", 1010, "2026-09-01", "2027-06-30", "Renewal", 210, 0.2625], ["Big", "B******", "", 1600, "2026-09-01", "2027-06-30", "Finalized", 0, 0.0]], "sub": 4410, "chg": 210, "pct": 0.05}, {"unit": "Unit 3", "rows": [["Master", "M******* *******", "", 1799, "2026-09-01", "2027-08-31", "Renewal", 134, 0.0805], ["Small", "F** ***", "", 1400, "2026-09-01", "2027-08-31", "Renewal", 0, 0.0], ["Big", "V**** ********", "", 1500, "2026-09-01", "2027-08-31", "Renewal", 0, 0.0]], "sub": 4699, "chg": 134, "pct": 0.02935}], "current": [{"unit": "Unit 1", "rows": [["Master", "J******* ****", "", 1646, "2026-01-01", "2026-06-30", "Finalized"], ["Small", "S******** ******", "", 1099, "2026-01-01", "2026-06-30", "Finalized"], ["Big", "M**** *********", "", 1255, "2026-01-01", "2026-06-30", "Finalized"]], "sub": 4000}, {"unit": "Unit 2", "rows": [["Master", "S****** ****", "", 1800, "2025-12-09", "2026-08-31", "Finalized"], ["Small", "C***** ****", "", 800, "2025-12-09", "2026-08-31", "Finalized"], ["Big", "A******* *****", "", 1600, "2025-12-09", "2026-08-31", "Finalized"]], "sub": 4200}, {"unit": "Unit 3", "rows": [["Master", "M******* *******", "", 1665, "2026-01-01", "2026-08-31", "Finalized"], ["Small", "F** ***", "", 1400, "2025-12-14", "2026-08-31", "Finalized"], ["Big", "V**** ********", "", 1500, "2025-12-15", "2026-08-31", "Finalized"]], "sub": 4565}], "totals": {"upcoming": 13306, "upChg": 541, "upPct": 0.0424, "current": 12765}};
+let TX = DATA.transactions.slice();
+const CFG = DATA.config;
+let charts = {};
+
+// ---------- helpers ----------
+const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function mKey(m){ // "FY25-Nov" -> sortable number
+  const mm=/FY(\d+)-(\w+)/.exec(m); if(!mm) return 0;
+  return parseInt(mm[1])*100 + (MONTHS.indexOf(mm[2])+1);
+}
+const fmt=(n)=>{const v=Math.round(n); return (v<0?"-$":"$")+Math.abs(v).toLocaleString();};
+const fmt2=(n)=>(n<0?"-$":"$")+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct=(n)=>(n*100).toFixed(2)+"%";
+const sum=(arr,f)=>arr.reduce((a,t)=>a+(f(t)?t.amount:0),0);
+const dateFmt=(d)=>{if(!d)return"";const p=d.split("-");return p.length===3?`${p[1]}/${p[2]}/${p[0].slice(2)}`:d;};
+
+// ordered list of months that have data
+function activeMonths(){
+  const s=[...new Set(TX.map(t=>t.month))];
+  return s.sort((a,b)=>mKey(a)-mKey(b));
+}
+
+// per-month aggregation (lifetime, all units) replicating Dashboard O:AK
+function monthlyAgg(months, unit){
+  const uf=(t)=> unit==="(All)" || t.unit===unit;
+  return months.map(m=>{
+    const r = TX.filter(t=>t.month===m && uf(t));
+    const rent   = sum(r,t=>t.type==="Income"&&t.category==="Rent");
+    const secIn  = sum(r,t=>t.type==="Income"&&t.category==="Security deposit"&&t.amount>0);
+    const income = rent+secIn;
+    const pi     = -sum(r,t=>t.category==="Interest"||t.category==="Principal");
+    const taxes  = -sum(r,t=>t.category==="Taxes");
+    const ins    = -sum(r,t=>t.category==="Insurance");
+    const sup    = -sum(r,t=>t.category==="Supplies & Repairs");
+    const mgmt   = -sum(r,t=>t.category==="Management fees");
+    const comm   = -sum(r,t=>t.category==="Commissions");
+    const secRef = -sum(r,t=>t.category==="Security deposit"&&t.amount<0);
+    const ncf    = income-pi-taxes-ins-sup-mgmt-comm-secRef;
+    return {month:m,rent,secIn,income,pi,taxes,ins,sup,mgmt,comm,secRef,ncf};
+  });
+}
+
+// ---------- render ----------
+function renderHeader(){
+  document.getElementById("hTitle").textContent=CFG.title;
+  document.getElementById("hAddr").textContent="";
+  document.title=CFG.title;
+  const eq=CFG.value-CFG.debt;
+  const info=[
+    ["Acquisition Date",CFG.acqDate],["Acquisition Price",fmt(CFG.acqPrice)],
+    ["$/sqft",fmt(CFG.acqPrice/CFG.sqft)],
+    ["Property Value",fmt(CFG.value)],["Debt",fmt(CFG.debt)],
+    ["Interest Rate / APR",CFG.rate],["Vacancy",CFG.vacancy]
+  ];
+  document.getElementById("propInfo").innerHTML=info.map(([k,v])=>
+    `<div class="info"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+}
+
+function renderKPIs(){
+  const inc=sum(TX,t=>t.type==="Income");
+  const exp=sum(TX,t=>t.type==="Expense");
+  const ncf=inc+exp;
+  const eq=CFG.value-CFG.debt;
+  const coc=ncf/CFG.acqPrice;
+  const k=[
+    ["Net Cash Flow (Lifetime)",fmt2(ncf),ncf>=0?"pos":"neg","Income − Expenses"],
+    ["Total Income",fmt(inc),"pos",""],
+    ["Total Expenses",fmt(exp),"neg",""],
+    ["Total Equity",fmt(eq),"","Value − Debt"],
+    ["Cash on Cash Return",pct(coc),coc>=0?"pos":"neg","Lifetime NCF / Acquisition"]
+  ];
+  document.getElementById("kpis").innerHTML=k.map(([l,v,c,s])=>
+    `<div class="card"><div class="lbl">${l}</div><div class="val ${c}">${v}</div><div class="sub">${s}</div></div>`).join("");
+}
+
+function renderTrend(){
+  const ms=activeMonths();
+  const agg=monthlyAgg(ms,"(All)");
+  const ncf=agg.map(a=>a.ncf);
+  const avg=ncf.reduce((a,b)=>a+b,0)/ncf.length;
+  let run=0; const cum=ncf.map(v=>run+=v);
+  const opt=chartOpts(true);
+  opt.scales.y1={position:"right",ticks:{color:"#64748b",callback:v=>fmt(v)},grid:{drawOnChartArea:false},
+    title:{display:true,text:"Cumulative",color:"#64748b"}};
+  if(charts.trend)charts.trend.destroy();
+  charts.trend=new Chart(document.getElementById("trendChart"),{
+    type:"bar",
+    data:{labels:ms,datasets:[
+      {label:"Net Cash Flow",data:ncf,backgroundColor:ncf.map(v=>v>=0?"rgba(5,177,105,.8)":"rgba(207,32,47,.8)"),borderRadius:4,order:3},
+      {type:"line",label:"Cumulative NCF",data:cum,borderColor:"#1652f0",borderWidth:2.5,pointRadius:3,pointHoverRadius:5,pointBackgroundColor:"#1652f0",yAxisID:"y1",tension:.25,order:0},
+      {type:"line",label:"Average ("+fmt(avg)+")",data:ms.map(()=>avg),borderColor:"#94a3b8",borderDash:[6,4],pointRadius:0,borderWidth:2,order:1}
+    ]},
+    options:opt
+  });
+}
+
+function chartOpts(money,stacked){
+  return {responsive:true,maintainAspectRatio:true,
+    interaction:{mode:"index",intersect:false},
+    plugins:{legend:{labels:{color:"#64748b",boxWidth:12}},
+      tooltip:{itemSort:(a,b)=>(a.dataset.label==="Net Cash Flow"?-1:b.dataset.label==="Net Cash Flow"?1:0),
+        callbacks:{label:c=>c.dataset.label+": "+fmt(c.parsed.y)}}},
+    scales:{
+      x:{stacked:!!stacked,ticks:{color:"#64748b"},grid:{color:"#eef2f6"}},
+      y:{stacked:!!stacked,ticks:{color:"#64748b",callback:v=>money?fmt(v):v},grid:{color:"#eef2f6"}}
+    }};
+}
+
+function curFilter(){
+  return {from:document.getElementById("fFrom").value,
+          to:document.getElementById("fTo").value,
+          unit:document.getElementById("fUnit").value};
+}
+function monthsInRange(from,to){
+  const all=activeMonths(), a=mKey(from),b=mKey(to);
+  return all.filter(m=>mKey(m)>=a&&mKey(m)<=b);
+}
+
+function renderDetail(){
+  const f=curFilter();
+  const ms=monthsInRange(f.from,f.to);
+  const agg=monthlyAgg(ms,f.unit);
+  const tInc=agg.reduce((a,x)=>a+x.income,0);
+  const tNcf=agg.reduce((a,x)=>a+x.ncf,0);
+  const tExp=tInc-tNcf; // total expenses (positive)
+  const kp=[
+    ["Net Cash Flow",fmt2(tNcf),tNcf>=0?"pos":"neg"],
+    ["Total Income",fmt(tInc),"pos"],
+    ["Total Expenses","-"+fmt(tExp).replace("$","$"),"neg"]
+  ];
+  document.getElementById("detailKpis").innerHTML=kp.map(([l,v,c])=>
+    `<div class="card"><div class="lbl">${l}</div><div class="val ${c}">${v}</div></div>`).join("");
+
+  // stacked breakdown (signed)
+  const ds=[
+    ["Rent",agg.map(a=>a.rent),"#22c55e"],
+    ["Security Deposit",agg.map(a=>a.secIn),"#14b8a6"],
+    ["P&I",agg.map(a=>-a.pi),"#ef4444"],
+    ["Insurance & Taxes",agg.map(a=>-(a.ins+a.taxes)),"#f59e0b"],
+    ["Supplies & Repairs",agg.map(a=>-a.sup),"#a855f7"],
+    ["Mgmt Fees",agg.map(a=>-a.mgmt),"#6366f1"],
+    ["Commissions",agg.map(a=>-a.comm),"#ec4899"],
+    ["Sec Deposit Refunds",agg.map(a=>-a.secRef),"#94a3b8"]
+  ];
+  if(charts.stack)charts.stack.destroy();
+  charts.stack=new Chart(document.getElementById("stackChart"),{
+    type:"bar",
+    data:{labels:ms,datasets:ds.map(d=>({label:d[0],data:d[1],backgroundColor:d[2],order:2}))
+      .concat([{type:"line",label:"Net Cash Flow",data:agg.map(a=>a.ncf),borderColor:"#0a0b0d",borderWidth:1.5,pointRadius:3,pointHoverRadius:5,pointBackgroundColor:"#0a0b0d",order:0,z:10}])},
+    options:chartOpts(true,true)
+  });
+  renderExpenses(ms,f.unit);
+  renderUnit(ms,f.unit);
+}
+
+function renderExpenses(ms,unit){
+  const uf=(t)=> unit==="(All)"||t.unit===unit;
+  const r=TX.filter(t=>ms.includes(t.month)&&uf(t));
+  const cats=[
+    ["Mortgage Interest","Interest"],["Mortgage Principal","Principal"],
+    ["Insurance","Insurance"],["Taxes","Taxes"],["Supplies & Repairs","Supplies & Repairs"],
+    ["Commissions","Commissions"],["Management fees","Management fees"]
+  ];
+  let rows=cats.map(([lbl,c])=>[lbl,Math.abs(sum(r,t=>t.category===c))]);
+  const secRef=Math.abs(sum(r,t=>t.category==="Security deposit"&&t.amount<0));
+  rows.push(["Sec Deposit Refund",secRef]);
+  rows=rows.filter(x=>x[1]>0);
+  const tot=rows.reduce((a,x)=>a+x[1],0);
+  document.getElementById("expTable").innerHTML=
+    "<tr><th>Category</th><th>Amount</th><th>%</th></tr>"+
+    rows.map(([l,v])=>`<tr><td>${l}</td><td>${fmt(v)}</td><td>${tot?pct(v/tot):"—"}</td></tr>`).join("")+
+    `<tr class="total-row"><td>Total</td><td>${fmt(tot)}</td><td>100%</td></tr>`;
+  const cols=["#ef4444","#dc2626","#f59e0b","#eab308","#a855f7","#ec4899","#6366f1","#94a3b8"];
+  if(charts.exp)charts.exp.destroy();
+  charts.exp=new Chart(document.getElementById("expPie"),{
+    type:"doughnut",
+    data:{labels:rows.map(x=>x[0]),datasets:[{data:rows.map(x=>x[1]),backgroundColor:cols}]},
+    options:{responsive:true,plugins:{legend:{position:"bottom",labels:{color:"#64748b",boxWidth:10,font:{size:10}}},
+      tooltip:{callbacks:{label:c=>c.label+": "+fmt(c.parsed)}}}}
+  });
+}
+
+function renderUnit(ms,unit){
+  const units=["Unit 1","Unit 2","Unit 3"];
+  const uf=(u)=> unit==="(All)"||u===unit;
+  const rows=units.map(u=>[u,(ms&&uf(u))?sum(TX,t=>t.type==="Income"&&t.unit===u&&ms.includes(t.month)):(ms?0:sum(TX,t=>t.type==="Income"&&t.unit===u))]);
+  const tot=rows.reduce((a,x)=>a+x[1],0);
+  document.getElementById("unitTable").innerHTML=
+    "<tr><th>Unit</th><th>Income</th><th>%</th></tr>"+
+    rows.map(([l,v])=>`<tr><td>${l}</td><td>${fmt(v)}</td><td>${pct(v/tot)}</td></tr>`).join("")+
+    `<tr class="total-row"><td>Total</td><td>${fmt(tot)}</td><td>100%</td></tr>`;
+  if(charts.unit)charts.unit.destroy();
+  charts.unit=new Chart(document.getElementById("unitPie"),{
+    type:"doughnut",
+    data:{labels:units,datasets:[{data:rows.map(x=>x[1]),backgroundColor:["#3b82f6","#14b8a6","#a855f7"]}]},
+    options:{responsive:true,plugins:{legend:{position:"bottom",labels:{color:"#64748b",boxWidth:10}},
+      tooltip:{callbacks:{label:c=>c.label+": "+fmt(c.parsed)}}}}
+  });
+}
+
+function renderNOI(){
+  const inc=sum(TX,t=>t.type==="Income"&&["Unit 1","Unit 2","Unit 3"].includes(t.unit));
+  const exp=sum(TX,t=>t.type==="Expense");
+  const noi=inc+exp;
+  const sr=CFG.stabilizedRent, ar=sr*12;
+  const rows=[
+    ["Total Income (units)",fmt(inc)],["Total Expenses",fmt(exp)],
+    ["Net Operating Income",fmt(noi)],["Operating Margin",pct(noi/inc)],
+    ["Monthly Stabilized Rent",fmt(sr)],["Annualized Rent (stab.)",fmt(ar)],
+    ["Gross Cap Rate (stab.)",pct(ar/CFG.acqPrice)],
+    ["Rent per Bedroom",fmt(sr/CFG.bedrooms)],
+    ["Acquisition $/sqft",fmt(CFG.acqPrice/CFG.sqft)]
+  ];
+  document.getElementById("noiTable").innerHTML=
+    "<tr><th>Metric</th><th>Value</th></tr>"+
+    rows.map(([l,v])=>`<tr><td>${l}</td><td>${v}</td></tr>`).join("");
+}
+
+function leaseRows(blocks,withChg){
+  let html="<tr class=\"lease-detail\"><th>Unit</th><th>Bedroom</th><th>Tenant</th><th>Monthly Rent</th><th>Start</th><th>End</th><th>Status</th>"+
+    (withChg?"<th>Δ Rent</th><th>%</th>":"")+"</tr>";
+  blocks.forEach(b=>{
+    b.rows.forEach(r=>{
+      const st=r[6]==="Renewal"?'<span class="badge ren">Renewal</span>':'<span class="badge fin">Finalized</span>';
+      html+=`<tr class="lease-detail"><td>${b.unit}</td><td>${r[0]}</td><td>${r[1]}</td><td>${fmt(r[3])}</td><td>${dateFmt(r[4])}</td><td>${dateFmt(r[5])}</td><td>${st}</td>`;
+      if(withChg)html+=`<td class="${r[7]>0?'pos':''}">${r[7]?'+$'+r[7]:'—'}</td><td>${r[7]?pct(r[8]):'—'}</td>`;
+      html+="</tr>";
+    });
+    html+=`<tr class="sub-row lease-detail"><td colspan="3">${b.unit} Subtotal</td><td>${fmt(b.sub)}</td><td colspan="3"></td>`+
+      (withChg?`<td>+$${b.chg}</td><td>${pct(b.pct)}</td>`:"")+"</tr>";
+  });
+  return html;
+}
+function renderLeases(){
+  let up=leaseRows(DATA.upcoming,true);
+  up+=`<tr class="total-row"><td colspan="3">Total</td><td>${fmt(DATA.totals.upcoming)}</td><td colspan="3">Rent uplift</td><td>+$${DATA.totals.upChg}</td><td>${pct(DATA.totals.upPct)}</td></tr>`;
+  document.getElementById("upTable").innerHTML=up;
+  let cur=leaseRows(DATA.current,false);
+  cur+=`<tr class="total-row"><td colspan="3">Total</td><td>${fmt(DATA.totals.current)}</td><td colspan="3"></td></tr>`;
+  document.getElementById("curTable").innerHTML=cur;
+}
+function setupLeaseToggles(){
+  document.querySelectorAll(".lease-toggle").forEach(t=>{
+    t.onclick=()=>{
+      const card=document.getElementById(t.dataset.target);
+      const collapsed=card.classList.toggle("collapsed");
+      t.querySelector(".arrow").textContent=collapsed?"▶":"▼";
+    };
+  });
+}
+
+function initFilters(){
+  const ms=activeMonths();
+  const opt=(a)=>a.map(m=>`<option>${m}</option>`).join("");
+  document.getElementById("fFrom").innerHTML=opt(ms);
+  document.getElementById("fTo").innerHTML=opt(ms);
+  const units=["(All)","Unit 1","Unit 2","Unit 3","General","Basement"];
+  document.getElementById("fUnit").innerHTML=units.map(u=>`<option>${u}</option>`).join("");
+  document.getElementById("fFrom").value=ms[0];
+  document.getElementById("fTo").value=ms[ms.length-1];
+  ["fFrom","fTo","fUnit"].forEach(id=>document.getElementById(id).onchange=renderDetail);
+  document.getElementById("fReset").onclick=()=>{
+    document.getElementById("fFrom").value=ms[0];
+    document.getElementById("fTo").value=ms[ms.length-1];
+    document.getElementById("fUnit").value="(All)";renderDetail();
+  };
+}
+
+function renderAll(){
+  renderHeader();renderKPIs();renderTrend();initFilters();renderDetail();
+  renderNOI();renderLeases();setupLeaseToggles();
+  document.getElementById("foot").textContent=
+    "거래 "+TX.length+"건 · 생성 "+new Date().toLocaleString('ko-KR')+" · 데이터: Transactions 시트 기반 자동 집계";
+}
+renderAll();
+</script>
+</body>
+</html>
