@@ -322,18 +322,23 @@ function renderExpenses(ms,unit){
 }
 
 function renderUnit(ms,unit){
-  const units=["Unit 1","Unit 2","Unit 3"];
+  const inP=(t)=> ms? ms.includes(t.month): true;
   const uf=(u)=> unit==="(All)"||u===unit;
-  const rows=units.map(u=>[u,(ms&&uf(u))?sum(TX,t=>t.type==="Income"&&t.unit===u&&ms.includes(t.month)):(ms?0:sum(TX,t=>t.type==="Income"&&t.unit===u))]);
+  let us=[...new Set(TX.filter(t=>t.type==="Income"&&inP(t)).map(t=>t.unit))];
+  const ord=(u)=>{const m=/Unit (\d+)/.exec(u); return m?+m[1]:100;};
+  us.sort((a,b)=>ord(a)-ord(b)||String(a).localeCompare(String(b)));
+  us=us.filter(uf);
+  const rows=us.map(u=>[u, sum(TX,t=>t.type==="Income"&&t.unit===u&&inP(t))]).filter(r=>r[1]!==0);
   const tot=rows.reduce((a,x)=>a+x[1],0);
   document.getElementById("unitTable").innerHTML=
     "<tr><th>Unit</th><th>Income</th><th>%</th></tr>"+
-    rows.map(([l,v])=>`<tr><td>${l}</td><td>${fmt(v)}</td><td>${pct(v/tot)}</td></tr>`).join("")+
+    rows.map(([l,v])=>`<tr><td>${l}</td><td>${fmt(v)}</td><td>${tot?pct(v/tot):"\u2014"}</td></tr>`).join("")+
     `<tr class="total-row"><td>Total</td><td>${fmt(tot)}</td><td>100%</td></tr>`;
+  const pal=["#3b82f6","#14b8a6","#a855f7","#f59e0b","#ec4899","#64748b","#0d9488","#eab308"];
   if(charts.unit)charts.unit.destroy();
   charts.unit=new Chart(document.getElementById("unitPie"),{
     type:"doughnut",
-    data:{labels:units,datasets:[{data:rows.map(x=>x[1]),backgroundColor:["#3b82f6","#14b8a6","#a855f7"]}]},
+    data:{labels:rows.map(r=>r[0]),datasets:[{data:rows.map(r=>r[1]),backgroundColor:rows.map((_,i)=>pal[i%pal.length])}]},
     options:{responsive:true,plugins:{legend:{position:"bottom",labels:{color:"#64748b",boxWidth:10}},
       tooltip:{callbacks:{label:c=>c.label+": "+fmt(c.parsed)}}}}
   });
