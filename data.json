@@ -1,6 +1,6 @@
 {
   "reporting_basis": "target_month",
-  "generated_at": "2026-10-09T00:33:55.752525+00:00",
+  "generated_at": "2026-10-12T22:01:09.158918+00:00",
   "months": [
     {
       "month": "2025-11",
@@ -18,10 +18,10 @@
       "categories": {
         "supplies_repairs": -34535,
         "rent": 0,
-        "commissions": 0,
-        "insurance": 0,
         "taxes": 0,
+        "insurance": 0,
         "management_fees": 0,
+        "commissions": 0,
         "mortgage_interest": 0,
         "mortgage_principal": 0,
         "security_deposit": 0,
@@ -45,10 +45,10 @@
         "supplies_repairs": -221270,
         "rent": 546800,
         "security_deposit": 710000,
-        "commissions": 0,
-        "insurance": 0,
         "taxes": 0,
+        "insurance": 0,
         "management_fees": 0,
+        "commissions": 0,
         "mortgage_interest": 0,
         "mortgage_principal": 0,
         "security_deposit_refund": 0
@@ -126,8 +126,8 @@
         "taxes": -100000,
         "insurance": -109124,
         "management_fees": -45000,
-        "commissions": 0,
         "supplies_repairs": 0,
+        "commissions": 0,
         "security_deposit": 0,
         "security_deposit_refund": 0
       }
@@ -179,9 +179,9 @@
         "taxes": -100000,
         "insurance": -109124,
         "security_deposit_refund": -123500,
-        "commissions": 0,
         "supplies_repairs": 0,
-        "management_fees": 0
+        "management_fees": 0,
+        "commissions": 0
       }
     },
     {
@@ -203,9 +203,9 @@
         "mortgage_interest": -653546,
         "taxes": -100000,
         "insurance": -109124,
-        "commissions": 0,
         "supplies_repairs": 0,
         "management_fees": 0,
+        "commissions": 0,
         "security_deposit": 0,
         "security_deposit_refund": 0
       }
@@ -232,8 +232,8 @@
         "insurance": -109124,
         "supplies_repairs": -39000,
         "security_deposit_refund": -30000,
-        "commissions": 0,
-        "management_fees": 0
+        "management_fees": 0,
+        "commissions": 0
       }
     },
     {
@@ -256,9 +256,9 @@
         "mortgage_interest": -653546,
         "taxes": -100000,
         "insurance": -109124,
-        "commissions": 0,
         "supplies_repairs": 0,
         "management_fees": 0,
+        "commissions": 0,
         "security_deposit": 0
       }
     },
@@ -283,8 +283,8 @@
         "insurance": -109124,
         "supplies_repairs": -35000,
         "security_deposit_refund": -290000,
-        "commissions": 0,
         "management_fees": 0,
+        "commissions": 0,
         "security_deposit": 0
       }
     },
@@ -307,9 +307,9 @@
         "mortgage_interest": -653546,
         "taxes": -100000,
         "insurance": -109124,
-        "commissions": 0,
         "supplies_repairs": 0,
         "management_fees": 0,
+        "commissions": 0,
         "security_deposit": 0,
         "security_deposit_refund": 0
       }
