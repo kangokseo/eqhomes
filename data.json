@@ -1,6 +1,6 @@
 {
   "reporting_basis": "target_month",
-  "generated_at": "2026-11-04T02:35:12.213685+00:00",
+  "generated_at": "2026-11-04T02:40:34.189782+00:00",
   "months": [
     {
       "month": "2025-11",
@@ -18,8 +18,8 @@
       "categories": {
         "supplies_repairs": -34535,
         "rent": 0,
-        "management_fees": 0,
         "taxes": 0,
+        "management_fees": 0,
         "insurance": 0,
         "commissions": 0,
         "mortgage_interest": 0,
@@ -45,8 +45,8 @@
         "supplies_repairs": -221270,
         "rent": 546800,
         "security_deposit": 710000,
-        "management_fees": 0,
         "taxes": 0,
+        "management_fees": 0,
         "insurance": 0,
         "commissions": 0,
         "mortgage_interest": 0,
@@ -126,8 +126,8 @@
         "taxes": -100000,
         "insurance": -109124,
         "management_fees": -45000,
-        "supplies_repairs": 0,
         "commissions": 0,
+        "supplies_repairs": 0,
         "security_deposit": 0,
         "security_deposit_refund": 0
       }
@@ -180,8 +180,8 @@
         "insurance": -109124,
         "security_deposit_refund": -123500,
         "management_fees": 0,
-        "supplies_repairs": 0,
-        "commissions": 0
+        "commissions": 0,
+        "supplies_repairs": 0
       }
     },
     {
@@ -204,8 +204,8 @@
         "taxes": -100000,
         "insurance": -109124,
         "management_fees": 0,
-        "supplies_repairs": 0,
         "commissions": 0,
+        "supplies_repairs": 0,
         "security_deposit": 0,
         "security_deposit_refund": 0
       }
@@ -257,8 +257,8 @@
         "taxes": -100000,
         "insurance": -109124,
         "management_fees": 0,
-        "supplies_repairs": 0,
         "commissions": 0,
+        "supplies_repairs": 0,
         "security_deposit": 0
       }
     },
@@ -308,8 +308,8 @@
         "taxes": -100000,
         "insurance": -109124,
         "management_fees": 0,
-        "supplies_repairs": 0,
         "commissions": 0,
+        "supplies_repairs": 0,
         "security_deposit": 0,
         "security_deposit_refund": 0
       }
